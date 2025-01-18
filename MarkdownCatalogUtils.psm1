@@ -1,7 +1,14 @@
+<#
+    TODO:
+    - turn this into nice cli with
+    github.com/rivo/tview & github.com/gdamore/tcell/v2
+    make the matching more uniform/ clear
+#>
+
 Function Notes-List {
     Param(
         [Parameter(Position = 0)]
-        [String]$group
+        [String]$Group
     )
 
     class NotesObject {
@@ -94,14 +101,14 @@ Function Notes-List {
     <# markdown items which have sub category #>
 
     $items = $null;
-    if (-NOT [string]::IsNullOrEmpty($group)) {
-        $items = Get-ChildItem | Where-Object { $_.Name -like '*.md' -and $_.Name -notlike '.*' -and $_.Name -match '\.' -and $_.Name -like ('*.', $group, '.*' -join '') }
+    [Bool]$skipGroup = [string]::IsNullOrEmpty($Group)
+    if ($skipGroup) {
+        $items = Get-ChildItem -File | Where-Object { $_.Extension -eq '.md' -and $_.Name -notlike '.*' <#filter dotfiles#> } 
     } else {
-        $items = Get-ChildItem | Where-Object { $_.Name -like '*.md' -and $_.Name -notlike '.*' -and $_.Name -match '\.' }
+        $items = Get-ChildItem | Where-Object { $_.Name -like '*.md' -and $_.Name -notlike '.*' -and $_.Name -match '\.' -and $_.Name -like ('*.', $group, '.*' -join '') }
     }
 
     $items = $items | Sort-Object @{ Expression = "LastWriteTime"; Descending = $false }
-
 
     $values = $items | ForEach-Object {
         $bn = $_.BaseName
@@ -167,3 +174,28 @@ $CategoricalCompleter = {
     }
 }
 Register-ArgumentCompleter -CommandName 'Notes-List' -ParameterName 'group' -ScriptBlock $CategoricalCompleter
+
+Function Get-NLSTags {
+    $a = Get-ChildItem -File | ForEach-Object {
+        # @{ 'content' = (Get-Content $_.FullName | Where-Object { $_ -match '^\s*#.*' }) } 
+        $Headings = ((Get-Content $_.FullName) | Where-Object { $_ -match '\|#[^|\s]+\|' })
+        # if (-NOT ($Headings).Count -OR ($Headings).Count -eq 0) {
+        #     continue
+        # }
+        return @{
+            'filename' = $_.FullName
+            'content'  = $Headings
+        }
+    }
+    # $a = $a | Where-Object { $_.Content -match '^\s*#.*' } 
+    return $a
+
+    $b | ForEach-Object {
+        # Match the regex pattern and capture groups if needed
+        if ($_ -match '^(\s*\#\s*)([^\r\n]*)') {
+            # "Whitespace or newline followed by '#' and an ASCII character: ($matches - join"
+        }
+    }
+}
+Export-ModuleMember Get-NLS
+
