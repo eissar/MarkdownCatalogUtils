@@ -6,6 +6,27 @@
 #>
 
 Function Notes-List {
+    <#
+        .SYNOPSIS
+        Lists markdown files with optional subcategory grouping.
+
+        .DESCRIPTION
+        This function retrieves and lists markdown (.md) files from the current directory. It supports filtering by group if provided. The output is sorted by LastWriteTime in ascending order.
+
+        .PARAMETER Group
+        An optional parameter that specifies a subgroup of files to filter by. If not supplied, all markdown files are listed.
+
+        .EXAMPLE
+        PS> Notes-List
+
+        Lists all markdown files without any grouping.
+
+        .EXAMPLE
+        PS> Notes-List -Group 'Category'
+        PS> nls -g map
+
+        Lists all markdown files grouped under the specified category.
+    #>
     Param(
         [Parameter(Position = 0)]
         [String]$Group
@@ -98,6 +119,7 @@ Function Notes-List {
         }
     }
 
+
     <# markdown items which have sub category #>
 
     $items = $null;
@@ -176,6 +198,25 @@ $CategoricalCompleter = {
 Register-ArgumentCompleter -CommandName 'Notes-List' -ParameterName 'group' -ScriptBlock $CategoricalCompleter
 
 Function Get-NLSTags {
+    <#
+        .SYNOPSIS
+            Retrieves tags inspired by vim syntax (e.g., `|#tag|`) from markdown files in the current directory.
+
+        .DESCRIPTION
+            The Get-NLSTags function scans through all markdown files (*.md) in the current directory,
+            extracting content that matches tags. These are lines with the format:
+            |#[Tag Content]|.
+
+        .EXAMPLE
+            PS C:\> $tags = Get-NLSTags
+
+            This command retrieves a collection of hashtable objects, each containing 'filename' and 
+            'content', where 'content' consists of lines matching the navigational link syntax.
+
+        .NOTES
+            Author: Your Name
+            Date: YYYY-MM-DD
+    #>
     $a = Get-ChildItem -File | ForEach-Object {
         # @{ 'content' = (Get-Content $_.FullName | Where-Object { $_ -match '^\s*#.*' }) } 
         $Headings = ((Get-Content $_.FullName) | Where-Object { $_ -match '\|#[^|\s]+\|' })
