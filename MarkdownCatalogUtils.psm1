@@ -1,3 +1,12 @@
+Add-Type -ReferencedAssemblies "System.Runtime.InteropServices.dll" -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class GoInterop
+{
+    [DllImport("FrontmatterParse.dll")]
+    public static extern IntPtr ProcessFrontmatter(string filePath);
+}
+"@
 <#
     TODO:
     - turn this into nice cli with
@@ -240,3 +249,10 @@ Function Get-NLSTags {
 }
 Export-ModuleMember Get-NLS
 
+Function Parse-Metadata {
+
+    $frontMatterPtr = [GoInterop]::ProcessFrontmatter("X:/Dropbox/Application_Files/Modules/MarkdownCatalogUtils/go-frontmatter/note.md")
+    $frontMatter = [System.Runtime.InteropServices.Marshal]::PtrToStringUTF8($frontMatterPtr)
+    Write-Host "Front Matter: " $frontMatter
+}
+Export-ModuleMember Parse-Metadata
