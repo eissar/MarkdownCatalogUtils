@@ -247,7 +247,7 @@ Function Get-NLSTags {
         }
     }
 }
-Export-ModuleMember Get-NLS
+Export-ModuleMember Get-NLSTags
 
 Function Parse-Metadata {
 
