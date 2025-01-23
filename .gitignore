@@ -1,0 +1,12 @@
+# binaries
+*.exe
+*.exe~
+*.dll
+*.dll~
+*.so
+*.dylib
+
+# dot files
+.*
+!.gitignore
+!.editorconfig
