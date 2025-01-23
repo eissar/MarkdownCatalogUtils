@@ -1,12 +1,3 @@
-Add-Type -ReferencedAssemblies "System.Runtime.InteropServices.dll" -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class GoInterop
-{
-    [DllImport("FrontmatterParse.dll")]
-    public static extern IntPtr ProcessFrontmatter(string filePath);
-}
-"@
 <#
     TODO:
     - turn this into nice cli with
@@ -14,25 +5,32 @@ public class GoInterop
     make the matching more uniform/ clear
 #>
 
+
 Function Notes-List {
     <#
         .SYNOPSIS
         Lists markdown files with optional subcategory grouping.
 
+
         .DESCRIPTION
         This function retrieves and lists markdown (.md) files from the current directory. It supports filtering by group if provided. The output is sorted by LastWriteTime in ascending order.
+
 
         .PARAMETER Group
         An optional parameter that specifies a subgroup of files to filter by. If not supplied, all markdown files are listed.
 
+
         .EXAMPLE
         PS> Notes-List
 
+
         Lists all markdown files without any grouping.
+
 
         .EXAMPLE
         PS> Notes-List -Group 'Category'
         PS> nls -g map
+
 
         Lists all markdown files grouped under the specified category.
     #>
@@ -41,12 +39,14 @@ Function Notes-List {
         [String]$Group
     )
 
+
     class NotesObject {
         <# Properties #>
         [string]$Name
         [string]$Category
         [string]$BaseName
         [datetime]$LastWriteTime
+
 
         <# Constructor #>
         NotesObject([string]$nam, [string]$cat, [string]$bn, [datetime]$wt) {
@@ -56,10 +56,12 @@ Function Notes-List {
             $this.LastWriteTime = $wt
         }
 
+
         <# Static method to define default formatting instead of types.ps1xml #>
         static [void] RegisterFormatData() {
             <# Get the type name of the class #>
             $typeName = [NotesObject].FullName
+
 
             # Define the table view
             $tableView = @{
@@ -84,6 +86,7 @@ Function Notes-List {
                 Alignment  = "Right"
             }
 
+
             # Create a scriptblock for dynamic format data generation
             $formatDataScript = {
                 param($DataTypeName, $TableView)
@@ -91,6 +94,7 @@ Function Notes-List {
                 $viewEntry = New-Object -TypeName System.Management.Automation.FormatViewDefinition
                 $viewEntry.Name = "TableView"
                 $viewEntry.Control = New-Object -TypeName System.Management.Automation.FormatTableControl
+
 
                 # Add columns to the table control
                 $TableView | ForEach-Object {
@@ -102,26 +106,32 @@ Function Notes-List {
                     $viewEntry.Control.Columns.Add($column)
                 }
 
+
                 # Create the format entry
                 $formatEntry = New-Object -TypeName System.Management.Automation.FormatEntry
                 $formatEntry.EntrySelectedBy = New-Object -TypeName System.Management.Automation.FormatEntrySelectionCondition
                 $formatEntry.EntrySelectedBy.TypeName = $DataTypeName
                 $formatEntry.View = $viewEntry
 
+
                 # Create a FormatEntryDefinition object
                 $formatEntryDefinition = New-Object -TypeName System.Management.Automation.FormatEntryDefinition
                 $formatEntryDefinition.FormatEntries.Add($formatEntry)
 
+
                 # Create an array to hold the FormatEntryDefinition
                 $formatEntryDefinitions = @($formatEntryDefinition)
 
+
                 return $formatEntryDefinitions
             }
+
 
             # Create dynamic type data
             $typeData = New-Object -TypeName System.Management.Automation.TypeData -ArgumentList $typeName
             $typeData.DefaultDisplayPropertySet = New-Object -TypeName System.Management.Automation.PSPropertySet -ArgumentList 'DefaultDisplayPropertySet', @('Name', 'Category', 'BaseName', 'LastWriteTime')
             $typeData.FormatViewDefinition = & $formatDataScript -DataTypeName $typeName -TableView $tableView
+
 
             # Update format data
             Update-TypeData -TypeData $typeData
@@ -129,7 +139,10 @@ Function Notes-List {
     }
 
 
+
+
     <# markdown items which have sub category #>
+
 
     $items = $null;
     [Bool]$skipGroup = [string]::IsNullOrEmpty($Group)
@@ -139,7 +152,9 @@ Function Notes-List {
         $items = Get-ChildItem | Where-Object { $_.Name -like '*.md' -and $_.Name -notlike '.*' -and $_.Name -match '\.' -and $_.Name -like ('*.', $group, '.*' -join '') }
     }
 
+
     $items = $items | Sort-Object @{ Expression = "LastWriteTime"; Descending = $false }
+
 
     $values = $items | ForEach-Object {
         $bn = $_.BaseName
@@ -153,6 +168,7 @@ Function Notes-List {
 }
 Export-ModuleMember Notes-List
 
+
 $CategoricalCompleter = {
     param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameters)
     class NotesObject {
@@ -161,6 +177,7 @@ $CategoricalCompleter = {
         [string]$Category
         [string]$BaseName
         [datetime]$LastWriteTime
+
 
         <# Constructor #>
         NotesObject([string]$nam, [string]$cat, [string]$bn, [datetime]$wt) {
@@ -172,10 +189,12 @@ $CategoricalCompleter = {
     }
     # [System.Windows.Forms.MessageBox]::Show($wordToComplete)
 
+
     <# enumerate files which should have a group #>
     $items = Get-ChildItem | Where-Object {
         $_.Name -match '.*\..*\.md'
     }
+
 
     # Get all unique group names from filenames
     $matches = $items | ForEach-Object { 
@@ -191,9 +210,11 @@ $CategoricalCompleter = {
         return $cat
     } | Get-Unique
 
+
     if (-NOT [String]::IsNullOrWhiteSpace($wordToComplete) ) {
         $matches = $matches | Where-Object { ($_).StartsWith($wordToComplete) }
     }
+
 
     $matches | ForEach-Object {
         New-Object -Type System.Management.Automation.CompletionResult -ArgumentList @(
@@ -206,21 +227,26 @@ $CategoricalCompleter = {
 }
 Register-ArgumentCompleter -CommandName 'Notes-List' -ParameterName 'group' -ScriptBlock $CategoricalCompleter
 
+
 Function Get-NLSTags {
     <#
         .SYNOPSIS
             Retrieves tags inspired by vim syntax (e.g., `|#tag|`) from markdown files in the current directory.
+
 
         .DESCRIPTION
             The Get-NLSTags function scans through all markdown files (*.md) in the current directory,
             extracting content that matches tags. These are lines with the format:
             |#[Tag Content]|.
 
+
         .EXAMPLE
             PS C:\> $tags = Get-NLSTags
 
+
             This command retrieves a collection of hashtable objects, each containing 'filename' and 
             'content', where 'content' consists of lines matching the navigational link syntax.
+
 
         .NOTES
             Author: Your Name
@@ -240,6 +266,7 @@ Function Get-NLSTags {
     # $a = $a | Where-Object { $_.Content -match '^\s*#.*' } 
     return $a
 
+
     $b | ForEach-Object {
         # Match the regex pattern and capture groups if needed
         if ($_ -match '^(\s*\#\s*)([^\r\n]*)') {
@@ -249,10 +276,48 @@ Function Get-NLSTags {
 }
 Export-ModuleMember Get-NLSTags
 
-Function Parse-Metadata {
 
-    $frontMatterPtr = [GoInterop]::ProcessFrontmatter("X:/Dropbox/Application_Files/Modules/MarkdownCatalogUtils/go-frontmatter/note.md")
-    $frontMatter = [System.Runtime.InteropServices.Marshal]::PtrToStringUTF8($frontMatterPtr)
-    Write-Host "Front Matter: " $frontMatter
+Function Parse-Metadata {
+    $fmp = Resolve-Path("./FrontmatterParse.dll")
+    Add-Type -ReferencedAssemblies "System.Runtime.InteropServices.dll" -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class GoInterop
+{
+    [DllImport("${$fmp}"]
+    public static extern IntPtr ProcessFrontmatter(string filePath);
+}
+"@
+
+    <#
+        Try {
+            $p = "X:/Dropbox/Application_Files/Modules/MarkdownCatalogUtils/FrontmatterParse_go/note.md"
+            [String]$p = [System.IO.Path]::GetFullPath($p)
+            Assert-PathExists $p
+            Write-Host $p
+            Write-Host 'Path Exists.'
+            $frontMatterPtr = [GoInterop]::ProcessFrontmatter($p)
+        } Catch {
+            Write-Output $frontMatterPtr
+            $msg = "Error while calling GoInterop to retrieve frontmatter:", $_.ToString() -join ', '
+            Write-Error -Message $msg -ErrorAction 'Stop'
+        };
+        Try {
+            $frontMatter = [System.Runtime.InteropServices.Marshal]::PtrToStringUTF8($frontMatterPtr)
+            return $frontMatterPtr
+        } Catch {
+            $frontMatterPtr -eq $null
+            Write-Output $frontMatterPtr
+            $msg = "Error unmarshalling data from GoInterop.", $_.ToString() -join ', '
+            Write-Error -Message $msg -ErrorAction 'Stop'
+        }
+        Write-Output "Front Matter: " $frontMatter
+    #>
+    $ErrorActionPreference = "stop"
+    $p = Resolve-Path("./note.md")
+    Assert-PathExists $p
+    Write-Host "Calling interop with path:", $p
+    Write-Output ([GoInterop]::ProcessFrontmatter($p))
 }
 Export-ModuleMember Parse-Metadata
+
